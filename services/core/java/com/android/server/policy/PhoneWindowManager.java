@@ -2716,7 +2716,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 updateWakeGestureListenerLp();
             }
 
-            boolean showNavBarDefault = CustomUtils.deviceSupportNavigationBar(mContext);
+            boolean showNavBarDefault = GzospUtils.deviceSupportNavigationBar(mContext);
             boolean navBarEnabled = Settings.System.getInt(resolver,
                         Settings.System.NAVIGATION_BAR_SHOW, showNavBarDefault ? 1:0) == 1;
 
