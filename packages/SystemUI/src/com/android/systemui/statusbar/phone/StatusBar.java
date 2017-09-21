@@ -149,6 +149,8 @@ import com.android.internal.statusbar.IStatusBarService;
 import com.android.internal.statusbar.NotificationVisibility;
 import com.android.internal.statusbar.StatusBarIcon;
 import com.android.internal.util.NotificationMessagingUtil;
+import com.android.internal.util.gzosp.GzospUtils;
+
 import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardHostView.OnDismissAction;
 import com.android.keyguard.KeyguardStatusView;
@@ -770,6 +772,8 @@ public class StatusBar extends SystemUI implements DemoMode,
     private View mNavigationBarView;
 
     private boolean mLockscreenMediaMetadata;
+
+    private boolean mShowNavBar;
 
     @Override
     public void start() {
@@ -5450,6 +5454,9 @@ public class StatusBar extends SystemUI implements DemoMode,
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.RECENTS_ICON_PACK),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.NAVIGATION_BAR_SHOW),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -5506,6 +5513,15 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
 
         public void update() {
+            int showNavBar = Settings.System.getIntForUser(
+                    mContext.getContentResolver(), Settings.System.NAVIGATION_BAR_SHOW,
+                    -1, mCurrentUserId);
+            if (showNavBar != -1){
+                boolean showNavBarBool = showNavBar == 1;
+                if (showNavBarBool !=  mShowNavBar){
+                    updateNavigationBar();
+                }
+            }
             setDoubleTapNavbar();
             setStatusBarWindowViewOptions();
             setLockscreenMediaMetadata();
@@ -5572,7 +5588,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         final String blackString = Settings.System.getString(mContext.getContentResolver(),
                     Settings.System.HEADS_UP_BLACKLIST_VALUES);
         splitAndAddToArrayList(mBlacklist, blackString, "\\|");
-    }  
+    }
 
     private void updateRecentsIconPack() {
         String currentIconPack = Settings.System.getStringForUser(mContext.getContentResolver(),
@@ -7297,6 +7313,22 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     }
     // End Extra BaseStatusBarMethods.
+
+    private void updateNavigationBar() {
+        mShowNavBar = GzospUtils.deviceSupportNavigationBarForUser(mContext, mCurrentUserId);
+        if (DEBUG) Log.v(TAG, "updateNavigationBar=" + mShowNavBar);
+
+        if (mShowNavBar) {
+            if (mNavigationBarView == null) {
+                createNavigationBar();
+            }
+        } else {
+            if (mNavigationBarView != null){
+                mWindowManager.removeViewImmediate(mNavigationBarView);
+                mNavigationBarView = null;
+            }
+        }
+    }
 
     @ChaosLab(name="GestureAnywhere", classification=Classification.NEW_METHOD)
     protected void addGestureAnywhereView() {

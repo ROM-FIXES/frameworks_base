@@ -827,6 +827,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private GlobalKeyManager mGlobalKeyManager;
 
     private boolean mGlobalActionsOnLockDisable;
+    private boolean mHardwareKeysDisable;
 
     // Fallback actions by key code.
     private final SparseArray<KeyCharacterMap.FallbackAction> mFallbackActions =
@@ -1036,6 +1037,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.ANSWER_VOLUME_BUTTON_BEHAVIOR_ANSWER), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.HARDWARE_KEYS_DISABLE), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.NAVIGATION_BAR_SHOW), false, this,
                     UserHandle.USER_ALL);
             updateSettings();
         }
@@ -2345,16 +2352,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         // Allow the navigation bar to move on non-square small devices (phones).
         mNavigationBarCanMove = width != height && shortSizeDp < 600;
 
-        mHasNavigationBar = res.getBoolean(com.android.internal.R.bool.config_showNavigationBar);
-
-        // Allow a system property to override this. Used by the emulator.
-        // See also hasNavigationBar().
-        String navBarOverride = SystemProperties.get("qemu.hw.mainkeys");
-        if ("1".equals(navBarOverride)) {
-            mHasNavigationBar = false;
-        } else if ("0".equals(navBarOverride)) {
-            mHasNavigationBar = true;
-        }
+        mHasNavigationBar = GzospUtils.deviceSupportNavigationBar(mContext);
 
         // For demo purposes, allow the rotation of the HDMI display to be controlled.
         // By default, HDMI locks rotation to landscape.
@@ -2494,6 +2492,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mVolumeAnswer = (Settings.System.getIntForUser(resolver,
                     Settings.System.ANSWER_VOLUME_BUTTON_BEHAVIOR_ANSWER, 0, UserHandle.USER_CURRENT) == 1);
 
+            mHardwareKeysDisable = Settings.System.getIntForUser(resolver,
+                    Settings.System.HARDWARE_KEYS_DISABLE, 0,
+                    UserHandle.USER_CURRENT) != 0;
+            mHasNavigationBar = GzospUtils.deviceSupportNavigationBar(mContext);
         }
         synchronized (mWindowManagerFuncs.getWindowManagerLock()) {
             PolicyControl.reloadFromSetting(mContext);
@@ -3462,11 +3464,18 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         final int flags = event.getFlags();
         final boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         final boolean canceled = event.isCanceled();
+        final boolean virtualKey = event.getDeviceId() == KeyCharacterMap.VIRTUAL_KEYBOARD;
+        final int scanCode = event.getScanCode();
+        // if mHardwareKeysDisable is true we have disabled all button rebindings
+        // so we can be sure that events that are !virtuaKey are only for real buttons
+        final boolean longPress = (flags & KeyEvent.FLAG_LONG_PRESS) != 0;
+        final boolean isVirtualHardKey = (flags & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0;
 
         if (DEBUG_INPUT) {
             Log.d(TAG, "interceptKeyTi keyCode=" + keyCode + " down=" + down + " repeatCount="
                     + repeatCount + " keyguardOn=" + keyguardOn + " mHomePressed=" + mHomePressed
-                    + " canceled=" + canceled);
+                    + " canceled=" + canceled + " virtualKey=" + virtualKey + " scanCode=" + scanCode
+                    + " longPress=" + longPress + " isVirtualHardKey=" + isVirtualHardKey);
         }
 
         // If we think we might have a volume down & power key chord on the way
@@ -6040,7 +6049,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         final boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         final boolean canceled = event.isCanceled();
         final int keyCode = event.getKeyCode();
-
+        final boolean virtualKey = event.getDeviceId() == KeyCharacterMap.VIRTUAL_KEYBOARD;
         final boolean isInjected = (policyFlags & WindowManagerPolicy.FLAG_INJECTED) != 0;
 
         // If screen is off then we treat the case where the keyguard is open but hidden
@@ -6051,11 +6060,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                                             (interactive ?
                                                 isKeyguardShowingAndNotOccluded() :
                                                 mKeyguardDelegate.isShowing()));
+        // if mHardwareKeysDisable is true we have disabled all button rebindings
+        // so we can be sure that events that are !virtuaKey are only for real buttons
+        boolean disableKey = !virtualKey && mHardwareKeysDisable;
 
         if (DEBUG_INPUT) {
             Log.d(TAG, "interceptKeyTq keycode=" + keyCode
                     + " interactive=" + interactive + " keyguardActive=" + keyguardActive
-                    + " policyFlags=" + Integer.toHexString(policyFlags));
+                    + " policyFlags=" + Integer.toHexString(policyFlags) + " down=" + down
+                    + " disableKey=" + disableKey);
         }
 
         // Basic policy based on interactive state.
@@ -6111,7 +6124,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         boolean useHapticFeedback = down
                 && (policyFlags & WindowManagerPolicy.FLAG_VIRTUAL) != 0
-                && event.getRepeatCount() == 0;
+                && event.getRepeatCount() == 0
+                && !disableKey;
 
         // Specific device key handling
         if (mDeviceKeyHandler != null) {

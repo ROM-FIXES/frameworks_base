@@ -3945,7 +3945,7 @@ public final class Settings {
          */
         public static final String STATUS_BAR_QUICK_QS_PULLDOWN = "status_bar_quick_qs_pulldown";
 
-        /** Whether to skip music track with volume rocker 
+        /** Whether to skip music track with volume rocker
         /**
          * @hide
          */
@@ -4320,6 +4320,17 @@ public final class Settings {
         public static final String RECENTS_ICON_PACK = "recents_icon_pack";
 
         /**
+         * Disable hw buttons - actions, brightness, haptic feedback, overflow menu
+         * @hide
+         */
+        public static final String HARDWARE_KEYS_DISABLE = "hardware_keys_disable";
+
+        /**
+         * @hide
+         */
+        public static final String NAVIGATION_BAR_SHOW = "navigation_bar_show";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
@@ -4502,6 +4513,8 @@ public final class Settings {
             PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD);
             PRIVATE_SETTINGS.add(QS_TILE_TITLE_VISIBILITY);
             PRIVATE_SETTINGS.add(WAKE_WHEN_PLUGGED_OR_UNPLUGGED);
+            PRIVATE_SETTINGS.add(NAVIGATION_BAR_SHOW);
+            PRIVATE_SETTINGS.add(HARDWARE_KEYS_DISABLE);
         }
 
         /**
