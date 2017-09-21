@@ -3945,7 +3945,7 @@ public final class Settings {
          */
         public static final String STATUS_BAR_QUICK_QS_PULLDOWN = "status_bar_quick_qs_pulldown";
 
-        /** Whether to skip music track with volume rocker 
+        /** Whether to skip music track with volume rocker
         /**
          * @hide
          */
@@ -4065,6 +4065,11 @@ public final class Settings {
          * @hide
          */
         public static final String QS_COLUMNS_LANDSCAPE = "qs_columns_landscape";
+
+        /**
+         * @hide
+         */
+        public static final String NAVIGATION_BAR_SHOW = "navigation_bar_show";
 
         /**
          * Wheter to show network traffic indicator in statusbar
@@ -4630,6 +4635,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(KEY_APP_SWITCH_DOUBLE_TAP_ACTION);
             PRIVATE_SETTINGS.add(KEY_CAMERA_LONG_PRESS_ACTION);
             PRIVATE_SETTINGS.add(KEY_CAMERA_DOUBLE_TAP_ACTION);
+            PRIVATE_SETTINGS.add(NAVIGATION_BAR_SHOW);
         }
 
         /**
