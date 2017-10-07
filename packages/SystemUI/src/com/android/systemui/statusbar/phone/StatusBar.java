@@ -149,7 +149,7 @@ import com.android.internal.statusbar.IStatusBarService;
 import com.android.internal.statusbar.NotificationVisibility;
 import com.android.internal.statusbar.StatusBarIcon;
 import com.android.internal.util.NotificationMessagingUtil;
-import com.android.internal.util.custom.GzospUtils;
+import com.android.internal.util.gzosp.GzospUtils;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardHostView.OnDismissAction;
 import com.android.keyguard.KeyguardStatusView;
@@ -548,9 +548,23 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     };
 
+    private class NavigationBarObserver extends ContentObserver {
+        NavigationBarObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
             mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
                     Settings.System.NAVIGATION_BAR_SHOW),
                     false, this, UserHandle.USER_ALL);
+            update();
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            update();
+        }
+
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             if (uri.equals(Settings.System.getUriFor(
@@ -574,6 +588,8 @@ public class StatusBar extends SystemUI implements DemoMode,
     }
 
     private boolean mShowNavBar;
+
+    private NavigationBarObserver mNavigationBarObserver = new NavigationBarObserver(mHandler);
 
     private int mInteractingWindows;
     private boolean mAutohideSuspended;
@@ -972,6 +988,8 @@ public class StatusBar extends SystemUI implements DemoMode,
         // Lastly, call to the icon policy to install/update all the icons.
         mIconPolicy = new PhoneStatusBarPolicy(mContext, mIconController);
         mSettingsObserver.onChange(false); // set up
+
+        mNavigationBarObserver.observe();
 
         mHeadsUpObserver.onChange(true); // set up
         if (ENABLE_HEADS_UP) {
